@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 import subprocess
 import os
-from pathlib import Path
 
 def run_git_commands():
     """Push the retro diner redesign to GitHub"""
     
     # Change to project directory
-    project_dir = Path(__file__).parent.parent
+    project_dir = "/vercel/share/v0-project"
     os.chdir(project_dir)
     
     print("📝 Adding all changes...")

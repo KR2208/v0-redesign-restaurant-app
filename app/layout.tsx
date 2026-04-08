@@ -1,22 +1,30 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter, Playfair_Display } from 'next/font/google'
+import { Poppins, Pacifico, Special_Elite } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { ThemeProvider } from '@/components/theme-provider'
 import './globals.css'
 
-const inter = Inter({ 
+const poppins = Poppins({ 
   subsets: ["latin"],
-  variable: '--font-inter',
+  weight: ["400", "500", "600", "700"],
+  variable: '--font-poppins',
 });
 
-const playfair = Playfair_Display({ 
+const pacifico = Pacifico({ 
   subsets: ["latin"],
-  variable: '--font-playfair',
+  weight: "400",
+  variable: '--font-pacifico',
+});
+
+const specialElite = Special_Elite({ 
+  subsets: ["latin"],
+  weight: "400",
+  variable: '--font-special-elite',
 });
 
 export const metadata: Metadata = {
-  title: 'Yelpy - Discover Premium Dining',
-  description: 'Your curated guide to exceptional dining experiences',
+  title: "Yelpy's Diner - Find Your Next Meal",
+  description: 'A retro restaurant discovery experience',
   generator: 'v0.app',
   icons: {
     icon: [
@@ -39,8 +47,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#faf9f7' },
-    { media: '(prefers-color-scheme: dark)', color: '#1a1815' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f0e8' },
+    { media: '(prefers-color-scheme: dark)', color: '#1a1612' },
   ],
 }
 
@@ -51,7 +59,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+      <body className={`${poppins.variable} ${pacifico.variable} ${specialElite.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

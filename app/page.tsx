@@ -73,7 +73,6 @@ export default function YelpyApp() {
     setSearchQuery(query)
     setLocation(loc)
     // In real app, this would call Google Places API
-    console.log("[v0] Searching for:", query, "in", loc)
   }
 
   const handleSave = (restaurant: Restaurant) => {

@@ -1,44 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Sidebar } from "@/components/yelpy/sidebar"
 import { MapView } from "@/components/yelpy/map-view"
 import { Restaurant } from "@/components/yelpy/types"
 
-// Mock data for demonstration
-const mockResults: Restaurant[] = [
-  {
-    id: "1",
-    name: "Tony's Pizza Napoletana",
-    address: "1570 Stockton St, San Francisco, CA 94133, USA",
-    rating: 4.5,
-    priceLevel: 2,
-    types: ["pizza restaurant", "italian restaurant"],
-    lat: 37.8003,
-    lng: -122.4091,
-  },
-  {
-    id: "2",
-    name: "Flour + Water",
-    address: "2401 Harrison St, San Francisco, CA 94110, USA",
-    rating: 4.7,
-    priceLevel: 3,
-    types: ["italian restaurant", "pasta"],
-    lat: 37.7589,
-    lng: -122.4128,
-  },
-  {
-    id: "3",
-    name: "A16",
-    address: "2355 Chestnut St, San Francisco, CA 94123, USA",
-    rating: 4.4,
-    priceLevel: 3,
-    types: ["italian restaurant", "wine bar"],
-    lat: 37.8005,
-    lng: -122.4380,
-  },
-]
-
+// TODO(sheet-05): saved restaurants are still local-only mock state.
+// This goes away once saves are persisted per-user in Postgres.
 const mockSaved: Restaurant[] = [
   {
     id: "1",
@@ -63,17 +31,44 @@ const mockSaved: Restaurant[] = [
 ]
 
 export default function YelpyApp() {
-  const [results, setResults] = useState<Restaurant[]>(mockResults)
+  const [results, setResults] = useState<Restaurant[]>([])
   const [saved, setSaved] = useState<Restaurant[]>(mockSaved)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [searchQuery, setSearchQuery] = useState("Italian")
   const [location, setLocation] = useState("San Francisco")
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
 
-  const handleSearch = (query: string, loc: string) => {
+  const handleSearch = async (query: string, loc: string) => {
     setSearchQuery(query)
     setLocation(loc)
-    // In real app, this would call Google Places API
+    setIsSearching(true)
+    setSearchError(null)
+
+    try {
+      const params = new URLSearchParams({ query, location: loc })
+      const response = await fetch(`/api/places/search?${params.toString()}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error ?? "Search failed")
+      }
+
+      setResults(data.restaurants)
+    } catch (error) {
+      console.error("Restaurant search failed:", error)
+      setSearchError("Couldn't find grub right now — try again in a bit.")
+      setResults([])
+    } finally {
+      setIsSearching(false)
+    }
   }
+
+  // Run the default search once on load so the UI isn't empty on first paint.
+  useEffect(() => {
+    handleSearch(searchQuery, location)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSave = (restaurant: Restaurant) => {
     if (!saved.find(r => r.id === restaurant.id)) {
@@ -85,7 +80,7 @@ export default function YelpyApp() {
     setSaved(saved.filter(r => r.id !== id))
   }
 
-  const handleSelectRestaurant = (restaurant: Restaurant) => {
+  const handleSelectRestaurant = (restaurant: Restaurant | null) => {
     setSelectedRestaurant(restaurant)
   }
 
@@ -101,6 +96,8 @@ export default function YelpyApp() {
         selectedRestaurant={selectedRestaurant}
         searchQuery={searchQuery}
         location={location}
+        isSearching={isSearching}
+        searchError={searchError}
       />
       <MapView
         results={results}

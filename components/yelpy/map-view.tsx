@@ -36,9 +36,14 @@ export function MapView({
     ? [selectedRestaurant.lat, selectedRestaurant.lng]
     : defaultCenter
 
+  // Real Google Place IDs are long alphanumeric strings, not small
+  // integers — parseInt(id) returns NaN for every one of them.
   const getRestaurantImage = (id: string) => {
-    const imageIndex = parseInt(id, 10) % foodImages.length
-    return foodImages[imageIndex]
+    let hash = 0
+    for (let i = 0; i < id.length; i++) {
+      hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+    }
+    return foodImages[hash % foodImages.length]
   }
 
   return (

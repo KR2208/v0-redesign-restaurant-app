@@ -17,10 +17,12 @@ interface SidebarProps {
   onSearch: (query: string, location: string) => void
   onSave: (restaurant: Restaurant) => void
   onRemove: (id: string) => void
-  onSelectRestaurant: (restaurant: Restaurant) => void
+  onSelectRestaurant: (restaurant: Restaurant | null) => void
   selectedRestaurant: Restaurant | null
   searchQuery: string
   location: string
+  isSearching?: boolean
+  searchError?: string | null
 }
 
 export function Sidebar({
@@ -33,6 +35,8 @@ export function Sidebar({
   selectedRestaurant,
   searchQuery: initialQuery,
   location: initialLocation,
+  isSearching = false,
+  searchError = null,
 }: SidebarProps) {
   const [query, setQuery] = useState(initialQuery)
   const [location, setLocation] = useState(initialLocation)
@@ -111,11 +115,12 @@ export function Sidebar({
             className="h-12 rounded-none border-2 border-chrome bg-sidebar pl-10 font-mono text-sidebar-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary"
           />
         </div>
-        <Button 
-          type="submit" 
-          className="h-12 w-full rounded-none border-2 border-chrome bg-primary font-mono text-sm uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30"
+        <Button
+          type="submit"
+          disabled={isSearching}
+          className="h-12 w-full rounded-none border-2 border-chrome bg-primary font-mono text-sm uppercase tracking-wider text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/30 disabled:opacity-60"
         >
-          Find Grub
+          {isSearching ? "Cookin'..." : "Find Grub"}
         </Button>
       </form>
 
@@ -132,17 +137,41 @@ export function Sidebar({
               <div className="h-px flex-1 bg-chrome/50" />
             </div>
             <div className="space-y-3">
-              {results.map((restaurant) => (
-                <RestaurantCard
-                  key={restaurant.id}
-                  restaurant={restaurant}
-                  variant="result"
-                  onSave={() => onSave(restaurant)}
-                  onSelect={() => onSelectRestaurant(restaurant)}
-                  isSelected={selectedRestaurant?.id === restaurant.id}
-                  isSaved={saved.some(r => r.id === restaurant.id)}
-                />
-              ))}
+              {isSearching && (
+                <div className="rounded-none border-2 border-dashed border-primary/50 py-6 text-center">
+                  <p className="font-mono text-sm text-muted-foreground">
+                    Sizzlin&apos; up some results...
+                  </p>
+                </div>
+              )}
+
+              {!isSearching && searchError && (
+                <div className="rounded-none border-2 border-destructive/50 bg-destructive/10 py-6 text-center">
+                  <p className="font-mono text-sm text-destructive">{searchError}</p>
+                </div>
+              )}
+
+              {!isSearching && !searchError && results.length === 0 && (
+                <div className="rounded-none border-2 border-dashed border-chrome/50 py-6 text-center">
+                  <p className="font-mono text-sm text-muted-foreground">
+                    No grub found, sugar. Try a different search.
+                  </p>
+                </div>
+              )}
+
+              {!isSearching &&
+                !searchError &&
+                results.map((restaurant) => (
+                  <RestaurantCard
+                    key={restaurant.id}
+                    restaurant={restaurant}
+                    variant="result"
+                    onSave={() => onSave(restaurant)}
+                    onSelect={() => onSelectRestaurant(restaurant)}
+                    isSelected={selectedRestaurant?.id === restaurant.id}
+                    isSaved={saved.some(r => r.id === restaurant.id)}
+                  />
+                ))}
             </div>
           </section>
 

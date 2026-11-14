@@ -18,9 +18,21 @@ interface RestaurantCardProps {
 
 const foodImages = [
   "/images/retro-burger.jpg",
-  "/images/retro-milkshake.jpg", 
+  "/images/retro-milkshake.jpg",
   "/images/retro-pie.jpg",
 ]
+
+// Real Google Place IDs are long alphanumeric strings (e.g.
+// "ChIJN1t_tDeuEmsRUsoyG83frY4"), not small integers — parseInt(id) would
+// return NaN for every one of them. Hash the string instead so each
+// restaurant still gets a stable, deterministic placeholder image.
+function hashToIndex(id: string, length: number): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  }
+  return hash % length
+}
 
 export function RestaurantCard({
   restaurant,
@@ -34,7 +46,7 @@ export function RestaurantCard({
   const priceDisplay = "$".repeat(restaurant.priceLevel)
   
   // Deterministic image based on restaurant id
-  const imageIndex = parseInt(restaurant.id, 10) % foodImages.length
+  const imageIndex = hashToIndex(restaurant.id, foodImages.length)
   const foodImage = foodImages[imageIndex]
 
   return (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Sidebar } from "@/components/yelpy/sidebar"
 import { MapView } from "@/components/yelpy/map-view"
 import { Restaurant } from "@/components/yelpy/types"
@@ -38,6 +38,14 @@ export default function YelpyApp() {
   const [location, setLocation] = useState("San Francisco")
   const [isSearching, setIsSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
+  // Guards against React Strict Mode's dev-only double-invoke of the
+  // mount effect below. A ref survives that fake unmount/remount, so the
+  // second invocation sees `true` and skips — without this, the very
+  // first search on every page load fired two real (billable) Places API
+  // calls instead of one, racing each other before either could write to
+  // the cache. Production builds don't double-invoke at all; this guard
+  // is purely a dev-mode safety net.
+  const hasSearchedOnMount = useRef(false)
 
   const handleSearch = async (query: string, loc: string) => {
     setSearchQuery(query)
@@ -66,6 +74,8 @@ export default function YelpyApp() {
 
   // Run the default search once on load so the UI isn't empty on first paint.
   useEffect(() => {
+    if (hasSearchedOnMount.current) return
+    hasSearchedOnMount.current = true
     handleSearch(searchQuery, location)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

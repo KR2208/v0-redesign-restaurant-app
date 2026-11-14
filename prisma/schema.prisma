@@ -1,0 +1,29 @@
+// Prisma 7 uses the Rust-free "prisma-client" generator by default — it
+// requires an explicit output path and a driver adapter at runtime (see
+// lib/prisma.ts) instead of loading a connection string straight off the
+// datasource block.
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+// Prisma 7: the connection URL no longer lives here — only in
+// prisma.config.ts (for the CLI) and the adapter passed to PrismaClient
+// (for the app, see lib/prisma.ts).
+datasource db {
+  provider = "postgresql"
+}
+
+// A cached Text Search result, keyed by the normalized "query|location"
+// that produced it. This is what keeps /api/places/search from re-billing
+// Google every time someone re-runs (or two people run) the same search.
+//
+// `results` stores the already-mapped Restaurant[] JSON, not the raw
+// Places API payload — the route needs exactly that shape on a cache hit,
+// and nothing else downstream reads the provider's raw fields (yet; if
+// that changes, store raw and re-map on every read instead).
+model CachedSearch {
+  key       String   @id
+  results   Json
+  fetchedAt DateTime @default(now())
+}

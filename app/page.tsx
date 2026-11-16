@@ -15,35 +15,11 @@ import { AuthButton } from "@/components/yelpy/auth-button"
 import { Restaurant } from "@/components/yelpy/types"
 import { authClient } from "@/lib/auth-client"
 
-// TODO(sheet-05): saved restaurants are still local-only mock state.
-// This goes away once saves are persisted per-user in Postgres.
-const mockSaved: Restaurant[] = [
-  {
-    id: "1",
-    name: "Tony's Pizza Napoletana",
-    address: "1570 Stockton St, San Francisco, CA 94133, USA",
-    rating: 4.5,
-    priceLevel: 2,
-    types: ["pizza restaurant", "italian restaurant"],
-    lat: 37.8003,
-    lng: -122.4091,
-  },
-  {
-    id: "4",
-    name: "Copper Chimney Indian Restaurant",
-    address: "489a 3rd St, San Francisco, CA 94107, USA",
-    rating: 4.7,
-    priceLevel: 2,
-    types: ["indian restaurant"],
-    lat: 37.7825,
-    lng: -122.3955,
-  },
-]
-
 export default function YelpyApp() {
   const { data: session, isPending: isSessionPending } = authClient.useSession()
   const [results, setResults] = useState<Restaurant[]>([])
-  const [saved, setSaved] = useState<Restaurant[]>(mockSaved)
+  const [saved, setSaved] = useState<Restaurant[]>([])
+  const [isLoadingSaved, setIsLoadingSaved] = useState(false)
   const [selectedRestaurant, setSelectedRestaurant] = useState<Restaurant | null>(null)
   const [searchQuery, setSearchQuery] = useState("Italian")
   const [location, setLocation] = useState("San Francisco")
@@ -97,14 +73,62 @@ export default function YelpyApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session])
 
-  const handleSave = (restaurant: Restaurant) => {
-    if (!saved.find(r => r.id === restaurant.id)) {
-      setSaved([...saved, restaurant])
+  // Load this user's real saved restaurants once signed in. Separate
+  // from the search effect above - this has nothing to do with Places
+  // or Google, it's just "what has this account saved before."
+  useEffect(() => {
+    if (!session) return
+
+    let cancelled = false
+    setIsLoadingSaved(true)
+
+    fetch("/api/saved")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled) setSaved(data.saved ?? [])
+      })
+      .catch((error) => console.error("Failed to load saved restaurants:", error))
+      .finally(() => {
+        if (!cancelled) setIsLoadingSaved(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [session])
+
+  const handleSave = async (restaurant: Restaurant) => {
+    if (saved.find((r) => r.id === restaurant.id)) return
+
+    // Optimistic: show it as saved immediately, reconcile with the
+    // server after. If the request fails, undo it rather than leave the
+    // UI claiming something is saved when it isn't.
+    setSaved((prev) => [...prev, restaurant])
+
+    try {
+      const response = await fetch("/api/saved", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(restaurant),
+      })
+      if (!response.ok) throw new Error("Save failed")
+    } catch (error) {
+      console.error("Failed to save restaurant:", error)
+      setSaved((prev) => prev.filter((r) => r.id !== restaurant.id))
     }
   }
 
-  const handleRemove = (id: string) => {
-    setSaved(saved.filter(r => r.id !== id))
+  const handleRemove = async (id: string) => {
+    const previous = saved
+    setSaved((prev) => prev.filter((r) => r.id !== id))
+
+    try {
+      const response = await fetch(`/api/saved/${encodeURIComponent(id)}`, { method: "DELETE" })
+      if (!response.ok) throw new Error("Remove failed")
+    } catch (error) {
+      console.error("Failed to remove restaurant:", error)
+      setSaved(previous)
+    }
   }
 
   const handleSelectRestaurant = (restaurant: Restaurant | null) => {
@@ -214,6 +238,7 @@ export default function YelpyApp() {
           <FavoritesList
             saved={saved}
             selectedRestaurant={selectedRestaurant}
+            isLoading={isLoadingSaved}
             onRemove={handleRemove}
             onSelect={handleSelectRestaurant}
           />

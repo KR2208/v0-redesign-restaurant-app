@@ -41,6 +41,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  savedRestaurants SavedRestaurant[]
 
   @@unique([email])
   @@map("user")
@@ -80,6 +81,30 @@ model Account {
 
   @@index([userId])
   @@map("account")
+}
+
+// A restaurant one specific user has saved. Denormalized on purpose -
+// we don't have a general "all places" table to point at, so this
+// stores a snapshot of the Restaurant data as it looked at save time.
+// @@unique on (userId, placeId) means saving the same place twice is a
+// no-op, not a duplicate row, and lets POST /api/saved use upsert
+// instead of checking for an existing row by hand first.
+model SavedRestaurant {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  placeId    String
+  name       String
+  address    String
+  rating     Float
+  priceLevel Int
+  types      String[]
+  lat        Float
+  lng        Float
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, placeId])
+  @@index([userId])
 }
 
 model Verification {

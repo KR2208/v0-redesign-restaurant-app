@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useRef, useState } from "react"
 import { Map, Marker, Overlay } from "pigeon-maps"
 import { X, Star, MapPin, Coffee } from "lucide-react"
 import Image from "next/image"
@@ -28,6 +29,28 @@ export function MapView({
 }: MapViewProps) {
   const savedIds = new Set(saved.map(r => r.id))
 
+  // Measure the actual container instead of asking the browser window's
+  // overall height once — that approach (the old `window.innerHeight`
+  // read) never updates after mount, so it silently goes stale the
+  // moment the real available space changes for any reason (resizing
+  // the panel, resizing the window, DevTools opening). 800 is just the
+  // SSR-safe placeholder; the ResizeObserver below replaces it with the
+  // real number the instant the browser can measure anything, and keeps
+  // it correct from then on.
+  const containerRef = useRef<HTMLElement>(null)
+  const [mapHeight, setMapHeight] = useState(800)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+
+    const observer = new ResizeObserver(([entry]) => {
+      if (entry) setMapHeight(entry.contentRect.height)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
   // Default center on San Francisco
   const defaultCenter: [number, number] = [37.7749, -122.4194]
 
@@ -47,7 +70,7 @@ export function MapView({
   }
 
   return (
-    <main className="relative flex-1 bg-background">
+    <main ref={containerRef} className="relative h-full flex-1 bg-background">
       {/* Decorative top border */}
       <div className="absolute left-0 right-0 top-0 z-10 flex h-3">
         {[...Array(40)].map((_, i) => (
@@ -62,7 +85,7 @@ export function MapView({
       </div>
 
       <Map
-        height={typeof window !== "undefined" ? window.innerHeight : 800}
+        height={mapHeight}
         center={center}
         zoom={selectedRestaurant ? 15 : 12}
         attribution={false}

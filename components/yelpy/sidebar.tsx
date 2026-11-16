@@ -48,7 +48,7 @@ export function Sidebar({
   }
 
   return (
-    <aside className="flex h-full w-full max-w-md flex-col border-r-4 border-chrome bg-sidebar">
+    <aside className="flex h-full w-full flex-col border-r-4 border-chrome bg-sidebar">
       {/* Retro Header */}
       <header className="relative border-b-4 border-chrome bg-gradient-to-b from-sidebar-accent to-sidebar px-6 py-5">
         {/* Decorative top stripe */}
@@ -129,7 +129,11 @@ export function Sidebar({
       </form>
 
       {/* Scrollable Content */}
-      <ScrollArea className="flex-1">
+      {/* min-h-0 overrides a flex item's default min-height: auto, which
+          otherwise refuses to shrink below its content's natural size —
+          the whole reason this list grew past the screen instead of
+          scrolling once there were enough real results to overflow it. */}
+      <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-6 p-4">
           {/* Search Results */}
           <section>

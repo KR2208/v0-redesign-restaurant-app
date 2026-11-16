@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { Sidebar } from "@/components/yelpy/sidebar"
 import { MapView } from "@/components/yelpy/map-view"
 import { Restaurant } from "@/components/yelpy/types"
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable"
 
 // TODO(sheet-05): saved restaurants are still local-only mock state.
 // This goes away once saves are persisted per-user in Postgres.
@@ -95,26 +96,33 @@ export default function YelpyApp() {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
-      <Sidebar
-        results={results}
-        saved={saved}
-        onSearch={handleSearch}
-        onSave={handleSave}
-        onRemove={handleRemove}
-        onSelectRestaurant={handleSelectRestaurant}
-        selectedRestaurant={selectedRestaurant}
-        searchQuery={searchQuery}
-        location={location}
-        isSearching={isSearching}
-        searchError={searchError}
-      />
-      <MapView
-        results={results}
-        saved={saved}
-        selectedRestaurant={selectedRestaurant}
-        onSelectRestaurant={handleSelectRestaurant}
-      />
+    <div className="h-screen w-full overflow-hidden bg-background">
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={28} minSize={20} maxSize={45}>
+          <Sidebar
+            results={results}
+            saved={saved}
+            onSearch={handleSearch}
+            onSave={handleSave}
+            onRemove={handleRemove}
+            onSelectRestaurant={handleSelectRestaurant}
+            selectedRestaurant={selectedRestaurant}
+            searchQuery={searchQuery}
+            location={location}
+            isSearching={isSearching}
+            searchError={searchError}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={72}>
+          <MapView
+            results={results}
+            saved={saved}
+            selectedRestaurant={selectedRestaurant}
+            onSelectRestaurant={handleSelectRestaurant}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   )
 }

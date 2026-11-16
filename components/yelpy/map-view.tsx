@@ -37,7 +37,7 @@ export function MapView({
   // SSR-safe placeholder; the ResizeObserver below replaces it with the
   // real number the instant the browser can measure anything, and keeps
   // it correct from then on.
-  const containerRef = useRef<HTMLElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [mapHeight, setMapHeight] = useState(800)
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function MapView({
   }
 
   return (
-    <main ref={containerRef} className="relative h-full flex-1 bg-background">
+    <div ref={containerRef} className="relative h-full w-full bg-background">
       {/* Decorative top border */}
       <div className="absolute left-0 right-0 top-0 z-10 flex h-3">
         {[...Array(40)].map((_, i) => (
@@ -283,6 +283,6 @@ export function MapView({
       <div className="absolute right-6 top-10 rotate-3 rounded-none border-4 border-chrome bg-accent px-4 py-2 shadow-lg">
         <p className="font-serif text-lg text-accent-foreground">Open 24/7</p>
       </div>
-    </main>
+    </div>
   )
 }

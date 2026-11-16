@@ -2,6 +2,7 @@
 // requires an explicit output path and a driver adapter at runtime (see
 // lib/prisma.ts) instead of loading a connection string straight off the
 // datasource block.
+
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -10,6 +11,7 @@ generator client {
 // Prisma 7: the connection URL no longer lives here — only in
 // prisma.config.ts (for the CLI) and the adapter passed to PrismaClient
 // (for the app, see lib/prisma.ts).
+
 datasource db {
   provider = "postgresql"
 }
@@ -22,8 +24,72 @@ datasource db {
 // Places API payload — the route needs exactly that shape on a cache hit,
 // and nothing else downstream reads the provider's raw fields (yet; if
 // that changes, store raw and re-map on every read instead).
+
 model CachedSearch {
   key       String   @id
   results   Json
   fetchedAt DateTime @default(now())
+}
+
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@unique([email])
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
 }

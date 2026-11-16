@@ -9,6 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { RestaurantCard } from "./restaurant-card"
 import { AIRecommendations } from "./ai-recommendations"
 import { ThemeToggle } from "./theme-toggle"
+import { AuthButton } from "./auth-button"
 import { Restaurant } from "./types"
 
 interface SidebarProps {
@@ -69,7 +70,10 @@ export function Sidebar({
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <AuthButton />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 

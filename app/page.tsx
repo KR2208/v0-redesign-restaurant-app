@@ -9,7 +9,7 @@ import { SearchForm } from "@/components/yelpy/search-form"
 import { ResultsList } from "@/components/yelpy/results-list"
 import { FavoritesList } from "@/components/yelpy/favorites-list"
 import { MapView } from "@/components/yelpy/map-view"
-import { AIRecommendations } from "@/components/yelpy/ai-recommendations"
+import { OutingPlan } from "@/components/yelpy/outing-plan"
 import { ThemeToggle } from "@/components/yelpy/theme-toggle"
 import { AuthButton } from "@/components/yelpy/auth-button"
 import { Restaurant } from "@/components/yelpy/types"
@@ -269,7 +269,7 @@ export default function YelpyApp() {
           </Section>
         </div>
 
-        <AIRecommendations />
+        <OutingPlan restaurant={selectedRestaurant} />
       </main>
 
       <footer className="border-t-4 border-chrome bg-card px-4 py-3 text-center">

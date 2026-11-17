@@ -31,6 +31,17 @@ model CachedSearch {
   fetchedAt DateTime @default(now())
 }
 
+// A generated "make it an outing" plan, keyed by the restaurant's own
+// Place ID. This is the single most expensive thing this app does (a
+// Places Nearby Search call for attractions, another for restaurants,
+// plus a Gemini call to narrate both) - a 7-day TTL here is what keeps
+// re-opening the same restaurant from re-paying for all three every time.
+model NearbyOutingCache {
+  placeId   String   @id
+  plan      Json
+  fetchedAt DateTime @default(now())
+}
+
 model User {
   id            String    @id
   name          String

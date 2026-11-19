@@ -3,6 +3,7 @@ import { PlacesApiError, searchRestaurants } from "@/lib/places"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { apiError, unauthenticated, API_ERROR_CODES } from "@/lib/api-errors"
 import type { Restaurant } from "@/components/yelpy/types"
 import type { Prisma } from "@/lib/generated/prisma/client"
 
@@ -53,7 +54,7 @@ async function writeCache(key: string, results: Restaurant[]): Promise<void> {
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+    return unauthenticated()
   }
 
   const { searchParams } = new URL(request.url)
@@ -61,10 +62,7 @@ export async function GET(request: NextRequest) {
   const location = searchParams.get("location")?.trim() ?? ""
 
   if (!query) {
-    return NextResponse.json(
-      { error: "Missing required 'query' search param" },
-      { status: 400 }
-    )
+    return apiError(API_ERROR_CODES.VALIDATION_ERROR, "Missing required 'query' search param")
   }
 
   const key = cacheKeyFor(query, location)
@@ -78,10 +76,7 @@ export async function GET(request: NextRequest) {
   // shouldn't count against the limit meant to protect real API spend.
   const rateLimit = await checkRateLimit(session.user.id, "places-search", SEARCH_RATE_LIMIT)
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "Too many searches - try again in a bit" },
-      { status: 429 }
-    )
+    return apiError(API_ERROR_CODES.RATE_LIMITED, "Too many searches - try again in a bit")
   }
 
   try {
@@ -90,10 +85,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ restaurants, cached: false })
   } catch (error) {
     console.error("GET /api/places/search failed:", error)
-    const status = error instanceof PlacesApiError ? 502 : 500
-    return NextResponse.json(
-      { error: "Couldn't search restaurants right now" },
-      { status }
-    )
+    const code = error instanceof PlacesApiError ? API_ERROR_CODES.UPSTREAM_ERROR : API_ERROR_CODES.INTERNAL_ERROR
+    return apiError(code, "Couldn't search restaurants right now")
   }
 }

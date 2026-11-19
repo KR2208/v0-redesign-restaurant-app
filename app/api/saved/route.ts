@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { apiError, unauthenticated, API_ERROR_CODES } from "@/lib/api-errors"
 import type { Restaurant } from "@/components/yelpy/types"
 
 // Same shape as the Restaurant the frontend already works with - the
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers })
 
   if (!session) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+    return unauthenticated()
   }
 
   const rows = await prisma.savedRestaurant.findMany({
@@ -48,14 +49,14 @@ export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({ headers: request.headers })
 
   if (!session) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+    return unauthenticated()
   }
 
   const body = await request.json()
   const parsed = SaveRestaurantSchema.safeParse(body)
 
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid restaurant data" }, { status: 400 })
+    return apiError(API_ERROR_CODES.VALIDATION_ERROR, "Invalid restaurant data")
   }
 
   const { id: placeId, ...rest } = parsed.data

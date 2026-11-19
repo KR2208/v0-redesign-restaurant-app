@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { unauthenticated } from "@/lib/api-errors"
 
 export async function DELETE(
   request: NextRequest,
@@ -9,7 +10,7 @@ export async function DELETE(
   const session = await auth.api.getSession({ headers: request.headers })
 
   if (!session) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+    return unauthenticated()
   }
 
   const { placeId } = await params

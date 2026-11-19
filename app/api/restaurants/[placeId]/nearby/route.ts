@@ -5,6 +5,7 @@ import { GeminiError, generateOutingPlan, type OutingCandidate } from "@/lib/gem
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { checkRateLimit } from "@/lib/rate-limit"
+import { apiError, unauthenticated, API_ERROR_CODES } from "@/lib/api-errors"
 
 // This is the most expensive thing the app does (two Places calls plus
 // a Gemini call), so it gets the longest cache window of anything we've
@@ -51,7 +52,7 @@ export async function GET(
 ) {
   const session = await auth.api.getSession({ headers: request.headers })
   if (!session) {
-    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+    return unauthenticated()
   }
 
   const { placeId } = await params
@@ -64,7 +65,7 @@ export async function GET(
   })
 
   if (!parsedQuery.success) {
-    return NextResponse.json({ error: "Missing or invalid name/lat/lng" }, { status: 400 })
+    return apiError(API_ERROR_CODES.VALIDATION_ERROR, "Missing or invalid name/lat/lng")
   }
 
   const { name, lat, lng } = parsedQuery.data
@@ -85,10 +86,7 @@ export async function GET(
   // limit meant to protect real spend.
   const rateLimit = await checkRateLimit(session.user.id, "nearby-outing", OUTING_RATE_LIMIT)
   if (!rateLimit.allowed) {
-    return NextResponse.json(
-      { error: "Too many outing plans requested - try again in a bit" },
-      { status: 429 }
-    )
+    return apiError(API_ERROR_CODES.RATE_LIMITED, "Too many outing plans requested - try again in a bit")
   }
 
   try {
@@ -141,7 +139,10 @@ export async function GET(
     return NextResponse.json({ plan, cached: false })
   } catch (error) {
     console.error(`GET /api/restaurants/${placeId}/nearby failed:`, error)
-    const status = error instanceof PlacesApiError || error instanceof GeminiError ? 502 : 500
-    return NextResponse.json({ error: "Couldn't put together an outing plan right now" }, { status })
+    const code =
+      error instanceof PlacesApiError || error instanceof GeminiError
+        ? API_ERROR_CODES.UPSTREAM_ERROR
+        : API_ERROR_CODES.INTERNAL_ERROR
+    return apiError(code, "Couldn't put together an outing plan right now")
   }
 }

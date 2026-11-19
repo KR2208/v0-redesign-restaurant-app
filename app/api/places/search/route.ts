@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server"
 import { PlacesApiError, searchRestaurants } from "@/lib/places"
 import { prisma } from "@/lib/prisma"
+import { auth } from "@/lib/auth"
+import { checkRateLimit } from "@/lib/rate-limit"
 import type { Restaurant } from "@/components/yelpy/types"
 import type { Prisma } from "@/lib/generated/prisma/client"
+
+// 20 real searches/hour/user is generous for normal use - someone
+// actually using the app won't notice this exists. It's there for the
+// case that matters: a bug or a bot looping this endpoint.
+const SEARCH_RATE_LIMIT = { limit: 20, windowMs: 60 * 60 * 1000 }
 
 // Text Search results don't change minute to minute — cache them so two
 // people (or one person hitting refresh) searching "Italian in San
@@ -44,6 +51,11 @@ async function writeCache(key: string, results: Restaurant[]): Promise<void> {
 }
 
 export async function GET(request: NextRequest) {
+  const session = await auth.api.getSession({ headers: request.headers })
+  if (!session) {
+    return NextResponse.json({ error: "Not signed in" }, { status: 401 })
+  }
+
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("query")?.trim()
   const location = searchParams.get("location")?.trim() ?? ""
@@ -60,6 +72,16 @@ export async function GET(request: NextRequest) {
   const cached = await readCache(key)
   if (cached) {
     return NextResponse.json({ restaurants: cached, cached: true })
+  }
+
+  // Only rate-limit past this point - a cache hit costs nothing, so it
+  // shouldn't count against the limit meant to protect real API spend.
+  const rateLimit = await checkRateLimit(session.user.id, "places-search", SEARCH_RATE_LIMIT)
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many searches - try again in a bit" },
+      { status: 429 }
+    )
   }
 
   try {

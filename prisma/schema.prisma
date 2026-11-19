@@ -16,6 +16,21 @@ datasource db {
   provider = "postgresql"
 }
 
+// A fixed-window rate-limit counter. key is "{userId}:{route}:{windowStart}"
+// so a new window just means a new row, not an update-or-reset dance - an
+// upsert with an atomic increment handles concurrent requests correctly
+// without a separate read-then-write race. Deliberately in Postgres, not
+// in-memory: an in-memory counter looks like it works locally and then
+// silently does nothing once this runs as separate serverless functions
+// that don't share memory with each other.
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
+
+  @@index([windowStart])
+}
+
 // A cached Text Search result, keyed by the normalized "query|location"
 // that produced it. This is what keeps /api/places/search from re-billing
 // Google every time someone re-runs (or two people run) the same search.

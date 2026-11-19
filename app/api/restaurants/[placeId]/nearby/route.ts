@@ -4,11 +4,16 @@ import { PlacesApiError, distanceMeters, searchNearbyPlaces, type NearbyPlace } 
 import { GeminiError, generateOutingPlan, type OutingCandidate } from "@/lib/gemini"
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
+import { checkRateLimit } from "@/lib/rate-limit"
 
 // This is the most expensive thing the app does (two Places calls plus
 // a Gemini call), so it gets the longest cache window of anything we've
 // built - a week, not a day.
 const OUTING_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+// Lower than search's 20/hour on purpose - this route costs roughly
+// 3x as much per real call (two Places calls plus a Gemini call).
+const OUTING_RATE_LIMIT = { limit: 10, windowMs: 60 * 60 * 1000 }
 
 const QuerySchema = z.object({
   name: z.string().min(1),
@@ -73,6 +78,17 @@ export async function GET(
     }
   } catch (error) {
     console.error("Outing cache read failed, falling back to a live call:", error)
+  }
+
+  // Only rate-limit past this point - same reasoning as the search
+  // route: a cache hit costs nothing and shouldn't count against a
+  // limit meant to protect real spend.
+  const rateLimit = await checkRateLimit(session.user.id, "nearby-outing", OUTING_RATE_LIMIT)
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many outing plans requested - try again in a bit" },
+      { status: 429 }
+    )
   }
 
   try {

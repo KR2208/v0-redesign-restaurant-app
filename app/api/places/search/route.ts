@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { apiError, unauthenticated, API_ERROR_CODES } from "@/lib/api-errors"
+import { isFresh } from "@/lib/cache-freshness"
 import type { Restaurant } from "@/components/yelpy/types"
 import type { Prisma } from "@/lib/generated/prisma/client"
 
@@ -26,8 +27,7 @@ async function readCache(key: string): Promise<Restaurant[] | null> {
     const cached = await prisma.cachedSearch.findUnique({ where: { key } })
     if (!cached) return null
 
-    const age = Date.now() - cached.fetchedAt.getTime()
-    if (age > SEARCH_CACHE_TTL_MS) return null
+    if (!isFresh(cached.fetchedAt, SEARCH_CACHE_TTL_MS)) return null
 
     return cached.results as unknown as Restaurant[]
   } catch (error) {

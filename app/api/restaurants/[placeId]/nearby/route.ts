@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { checkRateLimit } from "@/lib/rate-limit"
 import { apiError, unauthenticated, API_ERROR_CODES } from "@/lib/api-errors"
+import { isFresh } from "@/lib/cache-freshness"
 
 // This is the most expensive thing the app does (two Places calls plus
 // a Gemini call), so it gets the longest cache window of anything we've
@@ -74,7 +75,7 @@ export async function GET(
   // fails, fall through to a live call rather than error out entirely.
   try {
     const cached = await prisma.nearbyOutingCache.findUnique({ where: { placeId } })
-    if (cached && Date.now() - cached.fetchedAt.getTime() < OUTING_CACHE_TTL_MS) {
+    if (cached && isFresh(cached.fetchedAt, OUTING_CACHE_TTL_MS)) {
       return NextResponse.json({ plan: cached.plan as unknown as OutingPlanResponse, cached: true })
     }
   } catch (error) {

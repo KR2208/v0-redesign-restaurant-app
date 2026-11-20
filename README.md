@@ -5,6 +5,33 @@ location, Gemini for turning a restaurant's surroundings into a short,
 curated "things to do nearby" plan. Sign in with Google, search, save
 favorites, and they follow your account everywhere you sign in.
 
+## Features
+
+**Sign in with Google.** Sessions are real and Postgres-backed - no
+mock auth, no local-only state.
+
+![Landing page with Google sign-in](docs/screenshots/landing.png)
+
+**Search real restaurants**, backed by the Google Places API (New),
+with results cached per query for 24 hours so repeat searches don't
+re-bill the API.
+
+![Search results for Italian restaurants in San Francisco](docs/screenshots/search-results.png)
+
+**Save favorites to your account**, not to the browser - sign in on
+a different device and they're already there.
+
+![My Favorites section with two saved restaurants](docs/screenshots/favorites.png)
+
+**"Make It an Outing"** - the AI feature. Pick a restaurant and Gemini
+turns its real surroundings (fetched live from the Places API, never
+invented) into a short, curated plan: nearby landmarks worth a walk,
+plus a couple more places to eat close by. Every pick is checked
+against the real candidate list first, so Gemini narrates, it doesn't
+hallucinate. Cached for 7 days per restaurant.
+
+![AI-curated outing plan showing nearby landmarks and restaurants](docs/screenshots/outing-plan.png)
+
 ## Stack
 
 - **Framework:** Next.js 16 (App Router), React 19, TypeScript

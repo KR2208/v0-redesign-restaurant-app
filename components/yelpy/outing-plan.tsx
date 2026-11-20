@@ -39,6 +39,9 @@ export function OutingPlan({ restaurant }: OutingPlanProps) {
 
   useEffect(() => {
     if (!restaurant) {
+      // Intentional: clears the previous restaurant's plan immediately
+      // when none is selected, rather than leaving stale data on screen.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPlan(null)
       setError(null)
       return
@@ -71,6 +74,11 @@ export function OutingPlan({ restaurant }: OutingPlanProps) {
     return () => {
       cancelled = true
     }
+    // Deliberately depending on the restaurant's individual fields rather
+    // than the whole object - the sidebar re-creates restaurant objects on
+    // every search, and we only want to re-fetch when the actual place
+    // changes, not on every referentially-new-but-identical object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurant?.id, restaurant?.name, restaurant?.lat, restaurant?.lng])
 
   return (

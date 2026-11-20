@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # No DATABASE_URL, GOOGLE_PLACES_API_KEY, GEMINI_API_KEY, or OAuth
+      # secrets anywhere in this workflow - verified none of them are
+      # needed: `prisma generate` only reads the schema file (confirmed by
+      # running it locally with those env vars unset), and the one e2e
+      # test below only exercises the signed-out landing page, which still
+      # renders correctly even with every env file removed (also verified
+      # locally - Better Auth just logs warnings and the page loads fine).
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm exec tsc --noEmit
+
+      - run: pnpm test
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm test:e2e

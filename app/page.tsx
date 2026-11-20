@@ -80,6 +80,11 @@ export default function YelpyApp() {
     if (!session) return
 
     let cancelled = false
+    // Intentional: this needs to flip back to true on every session change
+    // (e.g. switching accounts), not just once on mount, so it can't be
+    // replaced by an initial useState(true) value the way the newer
+    // react-hooks/set-state-in-effect rule would prefer.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsLoadingSaved(true)
 
     fetch("/api/saved")
